@@ -31,26 +31,57 @@ from io import BytesIO
 # ==========================
 
 st.set_page_config(
-    page_title="Titanic Survival Prediction",
+    page_title="ML Classification Dashboard",
     layout="wide"
 )
 
-st.title("Titanic Survival Prediction Dashboard")
+st.title("ML Classification Dashboard")
 
 
 # ==========================
-# Load Dataset
+# 1. Dataset Selection
 # ==========================
 
-df = sns.load_dataset("titanic")
+st.header("1. Dataset")
+
+col1, col2 = st.columns([1, 3])
+
+with col1:
+    dataset_source = st.radio(
+        "Dataset Source",
+        ["Built-in Dataset", "Upload CSV"]
+    )
+
+with col2:
+    if dataset_source == "Built-in Dataset":
+        dataset_name = st.selectbox(
+            "Dataset",
+            ["Titanic"]
+        )
+
+        if dataset_name == "Titanic":
+            df = sns.load_dataset("titanic")
+
+    else:
+        uploaded_file = st.file_uploader(
+            "Upload your CSV file",
+            type=["csv"]
+        )
+
+        if uploaded_file is not None:
+            df = pd.read_csv(uploaded_file)
+        else:
+            st.warning("Please upload a CSV file.")
+            st.stop()
+
+st.success("Dataset Loaded Successfully")
 
 df.insert(0, "Serial_Number", range(1, len(df) + 1))
-
 raw_df = df.copy()
 
 
 # ==========================
-# Sidebar
+# Sidebar Controls
 # ==========================
 
 st.sidebar.title("Dashboard Controls")
@@ -78,12 +109,10 @@ test_size = st.sidebar.slider(
 # Dataset Overview
 # ==========================
 
-st.header("1. Dataset Overview")
-
 st.subheader("Dataset Used")
 
 st.write("Dataset Name : Titanic Dataset")
-st.write("Source : Seaborn Built-in Dataset")
+st.write("Source : Seaborn Built-in Dataset / Uploaded CSV")
 st.write(f"Rows : {raw_df.shape[0]}")
 st.write(f"Columns : {raw_df.shape[1]}")
 
@@ -97,9 +126,9 @@ st.dataframe(
 csv = raw_df.to_csv(index=False).encode("utf-8")
 
 st.download_button(
-    label="Download Original Titanic Dataset",
+    label="Download Original Dataset",
     data=csv,
-    file_name="Titanic_Dataset.csv",
+    file_name="Dataset_Used.csv",
     mime="text/csv"
 )
 
@@ -128,7 +157,7 @@ st.dataframe(
 
 
 # ==========================
-# Data Visualization
+# 2. Data Visualization
 # ==========================
 
 st.header("2. Data Visualization")
@@ -175,7 +204,7 @@ st.pyplot(fig5)
 
 
 # ==========================
-# Data Preprocessing
+# 3. Data Preprocessing
 # ==========================
 
 target = "survived"
@@ -189,23 +218,19 @@ drop_cols = [
     "class"
 ]
 
-df = df.drop(columns=drop_cols)
+df = df.drop(columns=drop_cols, errors="ignore")
 
 y = df[target]
 
 X = df.drop(columns=[target])
 
 serial_numbers = X["Serial_Number"]
-
 X = X.drop(columns=["Serial_Number"])
-
-le_dict = {}
 
 for col in X.select_dtypes(include="object").columns:
     le = LabelEncoder()
     X[col] = X[col].astype(str)
     X[col] = le.fit_transform(X[col])
-    le_dict[col] = le
 
 num_cols = X.select_dtypes(include=np.number).columns
 
@@ -214,7 +239,7 @@ X[num_cols] = imputer.fit_transform(X[num_cols])
 
 
 # ==========================
-# Train Test Split
+# 4. Train Test Split
 # ==========================
 
 X_train, X_test, y_train, y_test, sn_train, sn_test = train_test_split(
@@ -228,7 +253,7 @@ X_train, X_test, y_train, y_test, sn_train, sn_test = train_test_split(
 
 
 # ==========================
-# Model Selection
+# 5. Model Selection
 # ==========================
 
 if model_name == "Random Forest":
@@ -257,7 +282,7 @@ model.fit(X_train, y_train)
 
 
 # ==========================
-# Predictions
+# 6. Predictions
 # ==========================
 
 train_pred = model.predict(X_train)
@@ -268,7 +293,7 @@ test_prob = model.predict_proba(X_test)[:, 1]
 
 
 # ==========================
-# Metrics
+# 7. Model Evaluation
 # ==========================
 
 cm = confusion_matrix(y_test, test_pred)
@@ -286,11 +311,6 @@ tpr_metric = tp / (tp + fn)
 roc_auc = roc_auc_score(y_test, test_prob)
 
 fpr, tpr, thresholds = roc_curve(y_test, test_prob)
-
-
-# ==========================
-# Model Evaluation
-# ==========================
 
 st.header("3. Model Evaluation")
 
@@ -357,7 +377,7 @@ with col2:
 
 
 # ==========================
-# Train and Test Results
+# 8. Prediction Results
 # ==========================
 
 st.header("4. Prediction Results")
@@ -382,7 +402,7 @@ st.dataframe(test_df.head(20), use_container_width=True)
 
 
 # ==========================
-# Model Comparison
+# 9. Model Comparison
 # ==========================
 
 st.header("5. Model Comparison")
@@ -416,10 +436,14 @@ comparison_df = pd.DataFrame(comparison_results)
 st.dataframe(comparison_df, use_container_width=True)
 
 fig8, ax8 = plt.subplots(figsize=(10, 5))
-comparison_df.set_index("Model")[["Accuracy", "Precision", "Recall", "F1 Score", "ROC-AUC"]].plot(
-    kind="bar",
-    ax=ax8
-)
+comparison_df.set_index("Model")[[
+    "Accuracy",
+    "Precision",
+    "Recall",
+    "F1 Score",
+    "ROC-AUC"
+]].plot(kind="bar", ax=ax8)
+
 ax8.set_title("Model Comparison")
 ax8.set_ylabel("Score")
 ax8.set_ylim(0, 1)
@@ -427,7 +451,7 @@ st.pyplot(fig8)
 
 
 # ==========================
-# Excel Export
+# 10. Excel Export
 # ==========================
 
 cm_df = pd.DataFrame(
