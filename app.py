@@ -80,26 +80,51 @@ test_size = st.sidebar.slider(
 
 st.header("1. Dataset Overview")
 
+st.subheader("Dataset Used")
+
+st.write("Dataset Name : Titanic Dataset")
+st.write("Source : Seaborn Built-in Dataset")
+st.write(f"Rows : {raw_df.shape[0]}")
+st.write(f"Columns : {raw_df.shape[1]}")
+
+st.subheader("Original Dataset")
+
+st.dataframe(
+    raw_df,
+    use_container_width=True
+)
+
+csv = raw_df.to_csv(index=False).encode("utf-8")
+
+st.download_button(
+    label="Download Original Titanic Dataset",
+    data=csv,
+    file_name="Titanic_Dataset.csv",
+    mime="text/csv"
+)
+
 col1, col2, col3 = st.columns(3)
 
 with col1:
-    st.metric("Total Rows", df.shape[0])
+    st.metric("Total Rows", raw_df.shape[0])
 
 with col2:
-    st.metric("Total Columns", df.shape[1])
+    st.metric("Total Columns", raw_df.shape[1])
 
 with col3:
     st.metric("Target Column", "survived")
 
-st.subheader("Raw Dataset")
-st.dataframe(df.head(20), use_container_width=True)
-
 st.subheader("Missing Values")
+
 missing_df = pd.DataFrame({
-    "Column": df.columns,
-    "Missing Values": df.isnull().sum().values
+    "Column": raw_df.columns,
+    "Missing Values": raw_df.isnull().sum().values
 })
-st.dataframe(missing_df, use_container_width=True)
+
+st.dataframe(
+    missing_df,
+    use_container_width=True
+)
 
 
 # ==========================
